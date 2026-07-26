@@ -1,0 +1,265 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+import useAuthStore from "../../stores/useAuthStore";
+import ReportePreviewModal from "../../components/common/ReportePreviewModal";
+import FiltrosReportes from "../../components/common/FiltrosReportes";
+
+const C = {
+  color: "#0369a1", bg: "#f0f9ff", accent: "#e0f2fe",
+  text: "#0f172a", textSub: "#475569", textMuted: "#94a3b8",
+  border: "#e2e8f0",
+};
+
+export default function ReporteCalificaciones() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const [filtros, setFiltros] = useState({ periodo_id: "", materia_id: "", curso_id: "", estado: "", nombre: "", nota_min: "", nota_max: "" });
+  const [opciones, setOpciones] = useState({ periodos: [], materias: [], cursos: [] });
+  const [preview, setPreview] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [generado, setGenerado] = useState(false);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("");
+
+  useEffect(() => {
+    api.get("/docente/reportes/filtros").then(r => {
+      if (r.data?.success) setOpciones(r.data.data);
+    }).catch(() => {});
+  }, []);
+
+  const change = (e) => setFiltros({ ...filtros, [e.target.name]: e.target.value });
+  const changeFiltros = (nuevos) => setFiltros(nuevos);
+
+  const generarPreview = async () => {
+    try {
+      setLoading(true); setError("");
+      const res = await api.get("/docente/reportes/calificaciones/preview", { params: filtros });
+      setPreview(res.data.data || []);
+      setGenerado(true);
+    } catch (err) {
+      setError("Error: " + (err.response?.data?.message || err.message));
+      setGenerado(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const abrirModal = (tipo) => {
+    if (preview.length === 0) return;
+    setModalType(tipo);
+    setShowModal(true);
+  };
+
+  const confirmarDescarga = async () => {
+    setShowModal(false);
+    try {
+      const ext = modalType === "pdf" ? "pdf" : "xlsx";
+      const params = new URLSearchParams(filtros).toString();
+      const res = await api.get(`/docente/reportes/calificaciones/${modalType}?${params}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte-calificaciones.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Error al descargar: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
+  const aprobados = preview.filter((r) => {
+    const nota = Number(r.notaFinal || r.nota || 0);
+    return nota >= 51;
+  }).length;
+
+  const reprobados = preview.filter((r) => {
+    const nota = Number(r.notaFinal || r.nota || 0);
+    return nota > 0 && nota < 51;
+  }).length;
+
+  const columns = [
+    { key: "estudiante", label: "Estudiante", width: "30%", render: (r) => r.estudiante?.nombre || r.estudiante || "—" },
+    { key: "curso", label: "Curso", width: "26%", render: (r) => r.curso?.materia?.nombre || r.curso || "—" },
+    { key: "notaFinal", label: "Nota", width: "14%", align: "center", render: (r) => {
+      const nota = r.notaFinal ?? r.nota;
+      return nota !== null && nota !== undefined ? Number(nota).toFixed(1) : "—";
+    }},
+    { key: "estado", label: "Estado", width: "14%", align: "center", render: (r) => {
+      const nota = Number(r.notaFinal || r.nota || 0);
+      if (nota >= 51) return "Aprobado";
+      if (nota > 0 && nota < 51) return "Reprobado";
+      return "Cursando";
+    }},
+  ];
+
+  const infoItems = [
+    { label: "Total Calificaciones", value: preview.length },
+    { label: "Aprobados", value: aprobados },
+    { label: "Reprobados", value: reprobados },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+      <header style={s.header}>
+        <div style={s.headerBrand}>
+          <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+            <rect width="48" height="48" rx="10" fill={C.color} fillOpacity=".12" />
+            <path d="M12 34L24 14L36 34H12Z" stroke={C.color} strokeWidth="2.2" strokeLinejoin="round" fill="none" />
+            <circle cx="24" cy="24" r="3.5" fill={C.color} fillOpacity=".7" />
+          </svg>
+          <span style={{ fontWeight: 700, fontSize: "1rem", color: C.color }}>Sistema Académico</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => navigate("/docente/reportes")} style={s.backBtn}>
+            <i className="bi bi-arrow-left"></i> Volver
+          </button>
+          <button onClick={handleLogout} style={s.logoutBtn}>Cerrar sesión</button>
+        </div>
+      </header>
+
+      <main style={s.main}>
+        <div style={{ ...s.heroCard, borderTop: `4px solid ${C.color}` }}>
+          <div style={{ ...s.chip, background: C.accent, color: C.color }}>
+            <i className="bi bi-clipboard-data-fill" style={{fontSize:14}}></i> Reporte de Calificaciones
+          </div>
+          <h1 style={s.heroTitle}>Reporte de <span style={{ color: C.color }}>Calificaciones</span></h1>
+          <p style={s.heroDesc}>Consulta las calificaciones de los estudiantes filtrando por periodo, materia o curso.</p>
+
+          {error && <div style={s.errorBox}><i className="bi bi-exclamation-triangle-fill"></i> {error}</div>}
+
+          <FiltrosReportes
+            campos={["periodo", "materia", "curso", "nombre", "nota", "estado", "buscar"]}
+            opciones={opciones}
+            filtros={filtros}
+            onChange={changeFiltros}
+            onConsultar={generarPreview}
+            loading={loading}
+            color={C.color}
+            estadoOpciones={[
+              { value: "Aprobado", label: "Aprobado" },
+              { value: "Reprobado", label: "Reprobado" },
+            ]}
+          />
+        </div>
+
+        {generado && preview.length > 0 && (
+          <div style={s.resultsCard}>
+            <div style={s.resultsHeader}>
+              <h2 style={s.resultsTitle}>Previsualización del reporte</h2>
+              <div style={s.statBadge}>
+                <span style={s.statLabel}>Registros</span>
+                <span style={{ ...s.statValue, color: C.color }}>{preview.length}</span>
+              </div>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table style={s.table}>
+                <thead>
+                  <tr>
+                    {columns.map((col) => (
+                      <th key={col.key} style={{ ...s.th, textAlign: col.align || "left", width: col.width }}>
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.map((row, idx) => {
+                    const nota = Number(row.notaFinal || row.nota || 0);
+                    const estado = nota >= 51 ? "Aprobado" : nota > 0 && nota < 51 ? "Reprobado" : "Cursando";
+                    const ec = estado === "Aprobado" ? "#059669" : estado === "Reprobado" ? "#dc2626" : "#d97706";
+                    return (
+                      <tr key={idx} style={{ background: idx % 2 === 0 ? "#f8fafc" : "white", borderBottom: "1px solid #e2e8f0" }}>
+                        {columns.map((col) => (
+                          <td key={col.key} style={{ ...s.td, textAlign: col.align || "left" }}>
+                            {col.render ? col.render(row) : (row[col.key] ?? "—")}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={s.infoStrip}>
+              <div><span style={s.infoLabel}>Usuario</span><p style={s.infoVal}>{user?.username || "Docente"}</p></div>
+              <div style={s.infoSep} />
+              <div><span style={s.infoLabel}>Correo</span><p style={s.infoVal}>{user?.email || "—"}</p></div>
+              <div style={s.infoSep} />
+              <div><span style={s.infoLabel}>Rol</span><p style={{ ...s.infoVal, color: C.color }}>{user?.rol || "Docente"}</p></div>
+            </div>
+
+            <div style={s.exportSection}>
+              <button onClick={() => abrirModal("pdf")} style={{ ...s.exportBtn, background: "#dc2626" }}>
+                <i className="bi bi-file-earmark-pdf-fill"></i> Descargar PDF
+              </button>
+              <button onClick={() => abrirModal("excel")} style={{ ...s.exportBtn, background: "#16a34a" }}>
+                <i className="bi bi-file-earmark-excel-fill"></i> Descargar Excel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {generado && preview.length === 0 && (
+          <div style={s.emptyCard}>
+            <i className="bi bi-inbox" style={{fontSize:32,color:C.textMuted}}></i>
+            <h3 style={s.emptyTitle}>Sin resultados</h3>
+            <p style={s.emptyDesc}>No se encontraron calificaciones con los filtros seleccionados.</p>
+          </div>
+        )}
+      </main>
+
+      <ReportePreviewModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmarDescarga}
+        title="Reporte de Calificaciones"
+        tipo={modalType}
+        data={preview}
+        columns={columns}
+        infoItems={infoItems}
+      />
+    </div>
+  );
+}
+
+const s = {
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 2rem", background: "white", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, zIndex: 10 },
+  headerBrand: { display: "flex", alignItems: "center", gap: 10 },
+  backBtn: { display: "flex", alignItems: "center", gap: 7, padding: "0.45rem 1rem", border: "1.5px solid #e2e8f0", borderRadius: 8, background: "#f8fafc", color: "#475569", fontSize: "0.84rem", fontWeight: 500, cursor: "pointer" },
+  logoutBtn: { padding: "0.45rem 1rem", border: "1.5px solid #e2e8f0", borderRadius: 8, background: "white", color: "#475569", fontSize: "0.84rem", fontWeight: 500, cursor: "pointer" },
+  main: { maxWidth: 1000, margin: "0 auto", padding: "3rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" },
+  heroCard: { background: "white", borderRadius: 16, padding: "2rem", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
+  chip: { display: "inline-flex", gap: 8, padding: ".35rem .85rem", borderRadius: 999, fontWeight: 700, fontSize: ".82rem", marginBottom: "1.2rem" },
+  heroTitle: { fontSize: "2rem", fontWeight: 700, color: "#0f172a", margin: "0 0 .6rem" },
+  heroDesc: { color: "#64748b", lineHeight: 1.6, marginBottom: "1.5rem" },
+  errorBox: { display: "flex", alignItems: "center", gap: 10, padding: ".85rem 1rem", background: "#fee2e2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 10, marginBottom: "1rem", fontSize: ".9rem" },
+  resultsCard: { background: "white", borderRadius: 16, padding: "2rem", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
+  resultsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "1rem" },
+  resultsTitle: { fontSize: "1.25rem", fontWeight: 700, color: "#0f172a", margin: 0 },
+  statBadge: { padding: ".6rem 1rem", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, textAlign: "center" },
+  statLabel: { display: "block", fontSize: ".72rem", color: "#94a3b8", fontWeight: 700 },
+  statValue: { display: "block", fontSize: "1.25rem", fontWeight: 800 },
+  table: { width: "100%", borderCollapse: "collapse" },
+  th: { padding: ".85rem 1rem", background: "#f8fafc", borderBottom: "2px solid #e2e8f0", fontSize: ".78rem", fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: ".05em" },
+  td: { padding: ".85rem 1rem", color: "#1e293b", fontSize: ".9rem" },
+  infoStrip: { display: "flex", gap: 24, padding: "1rem 0", marginTop: "1rem", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap" },
+  infoLabel: { fontSize: ".72rem", color: "#94a3b8", fontWeight: 800, textTransform: "uppercase" },
+  infoVal: { margin: ".25rem 0 0", color: "#0f172a", fontWeight: 700 },
+  infoSep: { width: 1, height: 28, background: "#cbd5e1", flexShrink: 0 },
+  exportSection: { display: "flex", gap: 12, marginTop: "1rem" },
+  exportBtn: { display: "flex", alignItems: "center", gap: 8, color: "white", border: "none", borderRadius: 10, padding: ".7rem 1.25rem", fontWeight: 700, cursor: "pointer", fontSize: ".9rem" },
+  emptyCard: { background: "white", borderRadius: 16, padding: "2.5rem", textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
+  emptyTitle: { color: "#0f172a", marginBottom: ".5rem" },
+  emptyDesc: { color: "#64748b", margin: 0 },
+};
