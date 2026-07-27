@@ -29,7 +29,6 @@ export default function ReporteCalificaciones() {
     }).catch(() => {});
   }, []);
 
-  const change = (e) => setFiltros({ ...filtros, [e.target.name]: e.target.value });
   const changeFiltros = (nuevos) => setFiltros(nuevos);
 
   const generarPreview = async () => {
@@ -136,6 +135,12 @@ export default function ReporteCalificaciones() {
 
           {error && <div style={s.errorBox}><i className="bi bi-exclamation-triangle-fill"></i> {error}</div>}
 
+          {/* LEYENDA INFORMATIVA */}
+          <div style={s.instructionBanner}>
+            <i className="bi bi-info-circle-fill" style={{ fontSize: 16, color: C.color }}></i>
+            <span>Selecciona los parámetros deseados y presiona <strong>"Generar Reporte"</strong> para realizar la consulta.</span>
+          </div>
+
           <FiltrosReportes
             campos={["periodo", "materia", "curso", "nombre", "nota", "estado", "buscar"]}
             opciones={opciones}
@@ -151,6 +156,17 @@ export default function ReporteCalificaciones() {
           />
         </div>
 
+        {/* ESTADO INICIAL (Antes de consultar) */}
+        {!generado && !loading && (
+          <div style={s.initialStateCard}>
+            <i className="bi bi-search" style={{ fontSize: 36, color: C.textMuted }}></i>
+            <p style={s.initialStateText}>
+              Selecciona los filtros requeridos y haz clic en <strong>Generar Reporte</strong> para visualizar las calificaciones
+            </p>
+          </div>
+        )}
+
+        {/* RESULTADOS OBTENIDOS */}
         {generado && preview.length > 0 && (
           <div style={s.resultsCard}>
             <div style={s.resultsHeader}>
@@ -173,20 +189,15 @@ export default function ReporteCalificaciones() {
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.map((row, idx) => {
-                    const nota = Number(row.notaFinal || row.nota || 0);
-                    const estado = nota >= 51 ? "Aprobado" : nota > 0 && nota < 51 ? "Reprobado" : "Cursando";
-                    const ec = estado === "Aprobado" ? "#059669" : estado === "Reprobado" ? "#dc2626" : "#d97706";
-                    return (
-                      <tr key={idx} style={{ background: idx % 2 === 0 ? "#f8fafc" : "white", borderBottom: "1px solid #e2e8f0" }}>
-                        {columns.map((col) => (
-                          <td key={col.key} style={{ ...s.td, textAlign: col.align || "left" }}>
-                            {col.render ? col.render(row) : (row[col.key] ?? "—")}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
+                  {preview.map((row, idx) => (
+                    <tr key={idx} style={{ background: idx % 2 === 0 ? "#f8fafc" : "white", borderBottom: "1px solid #e2e8f0" }}>
+                      {columns.map((col) => (
+                        <td key={col.key} style={{ ...s.td, textAlign: col.align || "left" }}>
+                          {col.render ? col.render(row) : (row[col.key] ?? "—")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -210,11 +221,17 @@ export default function ReporteCalificaciones() {
           </div>
         )}
 
+        {/* SIN RESULTADOS */}
         {generado && preview.length === 0 && (
           <div style={s.emptyCard}>
-            <i className="bi bi-inbox" style={{fontSize:32,color:C.textMuted}}></i>
-            <h3 style={s.emptyTitle}>Sin resultados</h3>
-            <p style={s.emptyDesc}>No se encontraron calificaciones con los filtros seleccionados.</p>
+            <div style={s.emptyIconContainer}>
+              <i className="bi bi-search-heart" style={{ fontSize: 32, color: "#d97706" }}></i>
+            </div>
+            <h3 style={s.emptyTitle}>No se encontraron datos</h3>
+            <p style={s.emptyDesc}>
+              No se hallaron calificaciones con los filtros seleccionados. <br />
+              Por favor, <strong>intenta realizar la búsqueda con otros parámetros</strong> o amplía el rango seleccionado.
+            </p>
           </div>
         )}
       </main>
@@ -242,8 +259,16 @@ const s = {
   heroCard: { background: "white", borderRadius: 16, padding: "2rem", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
   chip: { display: "inline-flex", gap: 8, padding: ".35rem .85rem", borderRadius: 999, fontWeight: 700, fontSize: ".82rem", marginBottom: "1.2rem" },
   heroTitle: { fontSize: "2rem", fontWeight: 700, color: "#0f172a", margin: "0 0 .6rem" },
-  heroDesc: { color: "#64748b", lineHeight: 1.6, marginBottom: "1.5rem" },
+  heroDesc: { color: "#64748b", lineHeight: 1.6, marginBottom: "1.25rem" },
   errorBox: { display: "flex", alignItems: "center", gap: 10, padding: ".85rem 1rem", background: "#fee2e2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 10, marginBottom: "1rem", fontSize: ".9rem" },
+  
+  // Banner Informativo
+  instructionBanner: { display: "flex", alignItems: "center", gap: 10, padding: "0.75rem 1rem", background: C.bg, border: `1px solid ${C.accent}`, borderRadius: 10, color: "#0369a1", fontSize: "0.85rem", marginBottom: "1.25rem" },
+
+  // Card Estado Inicial
+  initialStateCard: { background: "white", borderRadius: 16, padding: "3.5rem 2rem", boxShadow: "0 2px 16px rgba(0,0,0,.04)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.85rem", border: "1px dashed #cbd5e1" },
+  initialStateText: { fontSize: "0.95rem", color: "#64748b", margin: 0, textAlign: "center" },
+
   resultsCard: { background: "white", borderRadius: 16, padding: "2rem", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
   resultsHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "1rem" },
   resultsTitle: { fontSize: "1.25rem", fontWeight: 700, color: "#0f172a", margin: 0 },
@@ -259,7 +284,10 @@ const s = {
   infoSep: { width: 1, height: 28, background: "#cbd5e1", flexShrink: 0 },
   exportSection: { display: "flex", gap: 12, marginTop: "1rem" },
   exportBtn: { display: "flex", alignItems: "center", gap: 8, color: "white", border: "none", borderRadius: 10, padding: ".7rem 1.25rem", fontWeight: 700, cursor: "pointer", fontSize: ".9rem" },
-  emptyCard: { background: "white", borderRadius: 16, padding: "2.5rem", textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,.06)" },
-  emptyTitle: { color: "#0f172a", marginBottom: ".5rem" },
-  emptyDesc: { color: "#64748b", margin: 0 },
+  
+  // Card Vacio / Sin Resultados
+  emptyCard: { background: "white", borderRadius: 16, padding: "3rem 2rem", textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,.06)", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" },
+  emptyIconContainer: { width: 56, height: 56, borderRadius: "50%", background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "0.25rem" },
+  emptyTitle: { color: "#0f172a", margin: 0, fontSize: "1.15rem", fontWeight: 700 },
+  emptyDesc: { color: "#64748b", margin: 0, fontSize: "0.9rem", lineHeight: 1.5 },
 };
