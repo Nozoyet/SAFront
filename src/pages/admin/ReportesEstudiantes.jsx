@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { reporteService } from '../../services/reporteService';
 import useAuthStore from '../../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import ReportePreviewModal from '../../components/common/ReportePreviewModal';
 
 const ADMIN_CONFIG = {
   color: '#7c3aed',
@@ -150,6 +151,29 @@ export default function ReportesEstudiantes() {
       setError('Error al descargar: ' + (err.response?.data?.error || err.message));
     }
   };
+
+  const previewColumns = useMemo(() => [
+    { key: 'matricula', label: 'Matrícula', width: '14%' },
+    { key: 'estudiante', label: 'Estudiante', width: '24%' },
+    { key: 'carrera', label: 'Carrera', width: '18%' },
+    { key: 'curso', label: 'Curso', width: '18%' },
+    { key: 'notaFinal', label: 'Nota', width: '10%', align: 'center', render: (r) => r.notaFinal ?? '—' },
+    { key: 'estado', label: 'Estado', width: '12%', align: 'center', render: (r) => (
+      <span style={{
+        background: r.estado === 'Activa' ? '#dcfce7' : r.estado === 'Completada' ? '#dbeafe' : '#fef3c7',
+        color: r.estado === 'Activa' ? '#166534' : r.estado === 'Completada' ? '#1e40af' : '#92400e',
+        borderRadius: 999, padding: '2px 12px', fontSize: 11, fontWeight: 600,
+      }}>{r.estado}</span>
+    )},
+  ], []);
+
+  const previewInfoItems = useMemo(() => [
+    { label: 'Total registros', value: data.length },
+  ], [data]);
+
+  const previewStats = useMemo(() => [
+    { label: 'Total Estudiantes', value: data.length, bg: '#ede9fe', text: '#7c3aed' },
+  ], [data]);
 
   const handleLogout = async () => {
     await logout();
@@ -385,85 +409,29 @@ export default function ReportesEstudiantes() {
         )}
       </main>
 
-      {/* Preview Modal */}
-      {showModal && (
-        <div className="modal fade show" style={modalBackdrop} onClick={() => setShowModal(false)}>
-          <div className="modal-dialog modal-xl modal-dialog-centered" style={modalInner} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content" style={modalContent}>
-              <div className="modal-header" style={modalHeader}>
-                <h5 className="modal-title" style={modalTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ADMIN_CONFIG.color} strokeWidth="2" style={{ marginRight: 8 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Previsualización - Exportar {modalType.toUpperCase()}
-                </h5>
-                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-              </div>
-              <div className="modal-body" style={{ padding: '1.25rem' }}>
-                <div style={previewInfo}>
-                  <span><strong>Total registros:</strong> {data.length}</span>
-                </div>
-                <div style={{ overflowX: 'auto', marginTop: 12, maxHeight: 400, overflowY: 'auto' }}>
-                  <table className="table table-bordered table-hover" style={{ margin: 0, fontSize: '0.82rem' }}>
-                    <thead className="table-light" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                      <tr>
-                        <th>Matrícula</th>
-                        <th>Estudiante</th>
-                        <th>Carrera</th>
-                        <th>Curso</th>
-                        <th style={{ textAlign: 'center' }}>Nota</th>
-                        <th style={{ textAlign: 'center' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.map((row, i) => (
-                        <tr key={row.id || i}>
-                          <td>{row.matricula}</td>
-                          <td>{row.estudiante}</td>
-                          <td>{row.carrera}</td>
-                          <td>{row.curso}</td>
-                          <td style={{ textAlign: 'center' }}>{row.notaFinal ?? '—'}</td>
-                          <td style={{ textAlign: 'center' }}>{row.estado}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer" style={modalFooter}>
-                <button className="btn btn-secondary" onClick={() => setShowModal(false)} style={modalCancelBtn}>Cancelar</button>
-                <button className="btn" onClick={confirmarDescarga} style={modalConfirmBtn}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Confirmar Descarga
-                </button>
-              </div>
-            </div>
+      <ReportePreviewModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmarDescarga}
+        title="Reporte de Estudiantes"
+        tipo={modalType}
+        data={data}
+        columns={previewColumns}
+        infoItems={previewInfoItems}
+        stats={previewStats}
+        color={ADMIN_CONFIG.color}
+        footerExtra={
+          <div style={{ display: 'flex', gap: 20 }}>
+            <span><strong>Usuario:</strong> {user?.username}</span>
+            <span><strong>Correo:</strong> {user?.email}</span>
+            <span><strong>Rol:</strong> {user?.rol}</span>
           </div>
-        </div>
-      )}
+        }
+      />
     </div>
   );
 }
 
-const modalBackdrop = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-  background: 'rgba(0,0,0,0.5)', zIndex: 1050,
-  overflowY: 'auto', padding: '30px 15px',
-};
-const modalInner = { margin: '0 auto', maxWidth: 1000 };
-const modalContent = { border: 'none', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden', background: '#ffffff', color: '#000000' };
-const modalHeader = { borderBottom: '1px solid #e2e8f0', padding: '1rem 1.25rem', background: '#ffffff', color: '#000000' };
-const modalTitle = { fontWeight: 700, fontSize: '1.05rem', color: '#000000', display: 'flex', alignItems: 'center' };
-const modalFooter = { borderTop: '1px solid #e2e8f0', padding: '1rem 1.25rem', display: 'flex', gap: 10, justifyContent: 'flex-end', background: '#ffffff' };
-const modalCancelBtn = { padding: '0.5rem 1.25rem', borderRadius: 10, fontWeight: 600, fontSize: '0.88rem', color: '#000000' };
-const modalConfirmBtn = { padding: '0.5rem 1.25rem', borderRadius: 10, fontWeight: 600, fontSize: '0.88rem', background: ADMIN_CONFIG.color, color: '#ffffff', border: 'none' };
-const previewInfo = { display: 'flex', gap: 16, flexWrap: 'wrap', padding: '0.75rem 1rem', background: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: '0.88rem', color: '#000000' };
 
 const styles = {
   root: { minHeight: '100vh', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" },

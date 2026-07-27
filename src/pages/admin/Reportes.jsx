@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { reporteService } from '../../services/reporteService';
 import useAuthStore from '../../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import ReportePreviewModal from '../../components/common/ReportePreviewModal';
 
 const ADMIN_CONFIG = {
   color: '#7c3aed',
@@ -32,6 +33,25 @@ export default function Reportes() {
 
   const carreraActiva = carreras.find((c) => c.id == carreraSeleccionada);
   const gestionActiva = gestiones.find((g) => g.id == gestionId);
+
+  const previewColumns = useMemo(() => [
+    { key: 'codigo', label: 'Código', width: '15%' },
+    { key: 'nombre', label: 'Nombre', width: '45%' },
+    { key: 'creditos', label: 'Créditos', width: '15%', align: 'center' },
+    { key: 'semestre', label: 'Semestre', width: '15%', align: 'center', render: (row) => row.semestre },
+  ], []);
+
+  const previewInfoItems = useMemo(() => [
+    { label: 'Carrera', value: carreraActiva?.nombre || '-' },
+    { label: 'Código', value: carreraActiva?.codigo || '-' },
+    { label: 'Modalidad', value: carreraActiva?.modalidad || '-' },
+    ...(gestionActiva ? [{ label: 'Gestión', value: gestionActiva.label }] : []),
+  ], [carreraActiva, gestionActiva]);
+
+  const previewStats = useMemo(() => [
+    { label: 'Total Materias', value: materias.length, bg: '#ede9fe', text: '#7c3aed' },
+    { label: 'Total Créditos', value: materias.reduce((sum, m) => sum + m.creditos, 0), bg: '#f0fdf4', text: '#16a34a' },
+  ], [materias]);
 
   useEffect(() => {
     cargarCarreras();
@@ -285,7 +305,7 @@ export default function Reportes() {
                       <td style={styles.tableCell}>{materia.codigo}</td>
                       <td style={styles.tableCell}>{materia.nombre}</td>
                       <td style={{ ...styles.tableCell, textAlign: 'center' }}>{materia.creditos}</td>
-                      <td style={{ ...styles.tableCell, textAlign: 'center' }}>{materia.semestre}°</td>
+                      <td style={{ ...styles.tableCell, textAlign: 'center' }}>{materia.semestre}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -351,85 +371,29 @@ export default function Reportes() {
         )}
       </main>
 
-      {/* Preview Modal */}
-      {showModal && (
-        <div className="modal fade show" style={{ ...modalBackdrop, display: 'block' }} onClick={() => setShowModal(false)}>
-          <div className="modal-dialog modal-lg modal-dialog-centered" style={modalInner} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content" style={modalContent}>
-              <div className="modal-header" style={modalHeader}>
-                <h5 className="modal-title" style={modalTitle}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ADMIN_CONFIG.color} strokeWidth="2" style={{ marginRight: 8 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Previsualización - Exportar {modalType.toUpperCase()}
-                </h5>
-                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-              </div>
-              <div className="modal-body" style={{ padding: '1.25rem' }}>
-                <div style={previewInfo}>
-                  <span><strong>Carrera:</strong> {carreraActiva?.nombre || '-'}</span>
-                  <span><strong>Total materias:</strong> {materias.length}</span>
-                  <span><strong>Total créditos:</strong> {materias.reduce((sum, m) => sum + m.creditos, 0)}</span>
-                </div>
-                <div style={{ overflowX: 'auto', marginTop: 12 }}>
-                  <table className="table table-bordered table-hover" style={{ margin: 0, fontSize: '0.85rem' }}>
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: '12%' }}>Código</th>
-                        <th style={{ width: '50%' }}>Nombre</th>
-                        <th style={{ width: '15%', textAlign: 'center' }}>Créditos</th>
-                        <th style={{ width: '15%', textAlign: 'center' }}>Semestre</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {materias.map((m, i) => (
-                        <tr key={m.id}>
-                          <td>{m.codigo}</td>
-                          <td>{m.nombre}</td>
-                          <td style={{ textAlign: 'center' }}>{m.creditos}</td>
-                          <td style={{ textAlign: 'center' }}>{m.semestre}°</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div className="modal-footer" style={modalFooter}>
-                <button className="btn btn-secondary" onClick={() => setShowModal(false)} style={modalCancelBtn}>
-                  Cancelar
-                </button>
-                <button className="btn" onClick={confirmarDescarga} style={modalConfirmBtn}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Confirmar Descarga
-                </button>
-              </div>
-            </div>
+      <ReportePreviewModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmarDescarga}
+        title="Reporte de Materias por Carrera"
+        tipo={modalType}
+        data={materias}
+        columns={previewColumns}
+        infoItems={previewInfoItems}
+        stats={previewStats}
+        color={ADMIN_CONFIG.color}
+        footerExtra={
+          <div style={{ display: 'flex', gap: 20 }}>
+            <span><strong>Usuario:</strong> {user?.username}</span>
+            <span><strong>Correo:</strong> {user?.email}</span>
+            <span><strong>Rol:</strong> {user?.rol}</span>
           </div>
-        </div>
-      )}
+        }
+      />
     </div>
   );
 }
 
-const modalBackdrop = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-  background: 'rgba(0,0,0,0.5)', zIndex: 1050,
-  overflowY: 'auto', padding: '30px 15px',
-};
-const modalInner = { margin: '0 auto', maxWidth: 800 };
-const modalContent = { border: 'none', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', overflow: 'hidden', background: '#ffffff', color: '#000000' };
-const modalHeader = { borderBottom: '1px solid #e2e8f0', padding: '1rem 1.25rem', background: '#ffffff', color: '#000000' };
-const modalTitle = { fontWeight: 700, fontSize: '1.05rem', color: '#000000', display: 'flex', alignItems: 'center' };
-const modalFooter = { borderTop: '1px solid #e2e8f0', padding: '1rem 1.25rem', display: 'flex', gap: 10, justifyContent: 'flex-end', background: '#ffffff' };
-const modalCancelBtn = { padding: '0.5rem 1.25rem', borderRadius: 10, fontWeight: 600, fontSize: '0.88rem', color: '#000000' };
-const modalConfirmBtn = { padding: '0.5rem 1.25rem', borderRadius: 10, fontWeight: 600, fontSize: '0.88rem', background: ADMIN_CONFIG.color, color: '#ffffff', border: 'none' };
-const previewInfo = { display: 'flex', gap: 16, flexWrap: 'wrap', padding: '0.75rem 1rem', background: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: '0.88rem', color: '#000000' };
 
 const styles = {
   root: { minHeight: '100vh', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" },
