@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../stores/useAuthStore";
-import { getUsuarios, eliminarUsuario, impersonarUsuario } from "../../services/api";
+import { getUsuarios, eliminarUsuario, asignarRol, impersonarUsuario } from "../../services/api";
 import FormCrearUsuario from "../../components/forms/FormCrearUsuario";
 
 const ADMIN_CONFIG = {
@@ -60,21 +60,21 @@ export default function GestionUsuarios() {
   };
 
   const RUTAS_BIENVENIDA = {
-    Docente: "/docente/bienvenida",
-    Estudiante: "/estudiante/bienvenida",
-  };
+  Docente: "/docente/bienvenida",
+  Estudiante: "/estudiante/bienvenida",
+};
 
-  const handleImpersonar = async (u) => {
-    try {
-      const res = await impersonarUsuario(u.id);
-      const { token, user } = res.data;
-      impersonate(token, user);
-      navigate(RUTAS_BIENVENIDA[user.rol] || "/", { replace: true });
-    } catch (e) {
-      console.error("Error real de impersonación:", e);
-      mostrarNotif(e.response?.data?.message || "No se pudo iniciar la suplantación.", "error");
-    }
-  };
+const handleImpersonar = async (u) => {
+  try {
+    const res = await impersonarUsuario(u.id);
+    const { token, user } = res.data;
+    impersonate(token, user);
+    navigate(RUTAS_BIENVENIDA[user.rol] || "/", { replace: true });
+  } catch (e) {
+    console.error("Error real de impersonación:", e);
+    mostrarNotif(e.response?.data?.message || "No se pudo iniciar la suplantación.", "error");
+  }
+};
   const mostrarNotif = (msg, tipo = "ok") => {
     setNotif({ msg, tipo });
     setTimeout(() => setNotif(null), 3000);
@@ -96,6 +96,16 @@ export default function GestionUsuarios() {
     } finally { setConfirmId(null); }
   };
 
+  const handleRol = async (id, rol) => {
+    try {
+      await asignarRol(id, rol);
+      setUsuarios(p => p.map(u => u.id === id ? { ...u, rol } : u));
+      mostrarNotif("Rol actualizado correctamente.");
+    } catch (e) {
+      mostrarNotif(e.response?.data?.message || "Error al cambiar rol.", "error");
+    }
+  };
+
   const filtrados = usuarios.filter(u => {
     const t = busqueda.toLowerCase();
     const matchBusq = !t || [u.nombre1, u.apellidoP, u.email, u.nombreUsuario, u.rol]
@@ -105,9 +115,9 @@ export default function GestionUsuarios() {
   });
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const inicio = (paginaSegura - 1) * porPagina;
-  const paginados = filtrados.slice(inicio, inicio + porPagina);
+const paginaSegura = Math.min(pagina, totalPaginas);
+const inicio = (paginaSegura - 1) * porPagina;
+const paginados = filtrados.slice(inicio, inicio + porPagina);
 
   const conteo = (rol) => usuarios.filter(u => u.rol === rol).length;
 
@@ -303,15 +313,19 @@ export default function GestionUsuarios() {
                     </td>
                     <td style={{ padding: "13px 16px", color: "#475569" }}>{u.email}</td>
                     <td style={{ padding: "13px 16px" }}>
-                      <span style={{
-                        backgroundColor: ROL_CONFIG[u.rol]?.bg ?? "#F3F4F6",
-                        color: ROL_CONFIG[u.rol]?.color ?? "#6B7280",
-                        border: `1px solid ${ROL_CONFIG[u.rol]?.color ?? "#6B7280"}44`,
-                        borderRadius: 20, padding: "4px 10px",
-                        fontSize: 11, fontWeight: 700,
-                      }}>
-                        {u.rol}
-                      </span>
+                      <select
+                        value={u.rol}
+                        onChange={e => handleRol(u.id, e.target.value)}
+                        style={{
+                          backgroundColor: ROL_CONFIG[u.rol]?.bg ?? "#F3F4F6",
+                          color: ROL_CONFIG[u.rol]?.color ?? "#6B7280",
+                          border: `1px solid ${ROL_CONFIG[u.rol]?.color ?? "#6B7280"}44`,
+                          borderRadius: 20, padding: "4px 10px",
+                          fontSize: 11, fontWeight: 700, cursor: "pointer", outline: "none",
+                        }}
+                      >
+                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
                     </td>
                     <td style={{ padding: "13px 16px" }}>
                       <button
@@ -328,81 +342,81 @@ export default function GestionUsuarios() {
                       </button>
                     </td>
                     <td style={{ padding: "13px 16px" }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {u.rol !== "Administrador" && (
-                          <button
-                            onClick={() => handleImpersonar(u)}
-                            title="Entrar como este usuario"
-                            style={{
-                              backgroundColor: "#EEF2FF", color: "#4F46E5",
-                              border: "1px solid #C7D2FE", borderRadius: 7,
-                              padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                            }}
-                          >
-                            Entrar como
-                          </button>
-                        )}
-
-                      </div>
-                    </td>
+  <div style={{ display: "flex", gap: 6 }}>
+    {u.rol !== "Administrador" && (
+      <button
+        onClick={() => handleImpersonar(u)}
+        title="Entrar como este usuario"
+        style={{
+          backgroundColor: "#EEF2FF", color: "#4F46E5",
+          border: "1px solid #C7D2FE", borderRadius: 7,
+          padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+        }}
+      >
+        Entrar como
+      </button>
+    )}
+    
+  </div>
+</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
           {!cargando && filtrados.length > 0 && (
-            <div style={{
-              padding: "10px 16px", backgroundColor: "#F8FAFC", borderTop: "1px solid #F1F5F9",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              flexWrap: "wrap", gap: 10,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94A3B8" }}>
-                <span>
-                  Mostrando {inicio + 1}–{Math.min(inicio + porPagina, filtrados.length)} de {filtrados.length}
-                </span>
-                <select
-                  value={porPagina}
-                  onChange={(e) => { setPorPagina(Number(e.target.value)); setPagina(1); }}
-                  style={{
-                    border: "1px solid #E2E8F0", borderRadius: 6, padding: "3px 6px",
-                    fontSize: 12, color: "#475569", background: "#fff", cursor: "pointer", outline: "none",
-                  }}
-                >
-                  {[10, 25, 50, 100].map((n) => (
-                    <option key={n} value={n}>{n} por página</option>
-                  ))}
-                </select>
-              </div>
+  <div style={{
+    padding: "10px 16px", backgroundColor: "#F8FAFC", borderTop: "1px solid #F1F5F9",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    flexWrap: "wrap", gap: 10,
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94A3B8" }}>
+      <span>
+        Mostrando {inicio + 1}–{Math.min(inicio + porPagina, filtrados.length)} de {filtrados.length}
+      </span>
+      <select
+        value={porPagina}
+        onChange={(e) => { setPorPagina(Number(e.target.value)); setPagina(1); }}
+        style={{
+          border: "1px solid #E2E8F0", borderRadius: 6, padding: "3px 6px",
+          fontSize: 12, color: "#475569", background: "#fff", cursor: "pointer", outline: "none",
+        }}
+      >
+        {[10, 25, 50, 100].map((n) => (
+          <option key={n} value={n}>{n} por página</option>
+        ))}
+      </select>
+    </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                  disabled={paginaSegura === 1}
-                  style={{
-                    padding: "5px 10px", borderRadius: 6, border: "1px solid #E2E8F0",
-                    background: "#fff", color: paginaSegura === 1 ? "#CBD5E1" : "#475569",
-                    fontSize: 12, fontWeight: 600, cursor: paginaSegura === 1 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  ‹ Anterior
-                </button>
-                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600, padding: "0 4px" }}>
-                  Página {paginaSegura} de {totalPaginas}
-                </span>
-                <button
-                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                  disabled={paginaSegura === totalPaginas}
-                  style={{
-                    padding: "5px 10px", borderRadius: 6, border: "1px solid #E2E8F0",
-                    background: "#fff", color: paginaSegura === totalPaginas ? "#CBD5E1" : "#475569",
-                    fontSize: 12, fontWeight: 600, cursor: paginaSegura === totalPaginas ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Siguiente ›
-                </button>
-              </div>
-            </div>
-          )}
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <button
+        onClick={() => setPagina((p) => Math.max(1, p - 1))}
+        disabled={paginaSegura === 1}
+        style={{
+          padding: "5px 10px", borderRadius: 6, border: "1px solid #E2E8F0",
+          background: "#fff", color: paginaSegura === 1 ? "#CBD5E1" : "#475569",
+          fontSize: 12, fontWeight: 600, cursor: paginaSegura === 1 ? "not-allowed" : "pointer",
+        }}
+      >
+        ‹ Anterior
+      </button>
+      <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600, padding: "0 4px" }}>
+        Página {paginaSegura} de {totalPaginas}
+      </span>
+      <button
+        onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+        disabled={paginaSegura === totalPaginas}
+        style={{
+          padding: "5px 10px", borderRadius: 6, border: "1px solid #E2E8F0",
+          background: "#fff", color: paginaSegura === totalPaginas ? "#CBD5E1" : "#475569",
+          fontSize: 12, fontWeight: 600, cursor: paginaSegura === totalPaginas ? "not-allowed" : "pointer",
+        }}
+      >
+        Siguiente ›
+      </button>
+    </div>
+  </div>
+)}
         </div>
       </div>
 
