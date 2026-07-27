@@ -281,15 +281,7 @@ export default function ReportesDocentes() {
                 <label style={styles.filterLabel}>Fecha fin</label>
                 <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} style={styles.filterSelect} />
               </div>
-              {loading && (
-                <div style={styles.filterGroup}>
-                  <label style={{ ...styles.filterLabel, visibility: 'hidden' }}>.</label>
-                  <div style={{ ...styles.searchBtn, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.7, cursor: 'default' }}>
-                    <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }}></span>
-                    Buscando...
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
         </div>

@@ -253,15 +253,7 @@ export default function Reportes() {
                 </select>
               </div>
 
-              {loading && (
-                <div style={styles.filterGroup}>
-                  <label style={{ ...styles.filterLabel, visibility: 'hidden' }}>.</label>
-                  <div style={{ ...styles.searchBtn, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.7, cursor: 'default' }}>
-                    <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }}></span>
-                    Cargando...
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
         </div>
