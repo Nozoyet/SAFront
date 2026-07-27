@@ -35,59 +35,75 @@ export default function ReportesEstudiantes() {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
 
-  useEffect(() => {
-    cargarCarreras();
-  }, []);
+  // 1. Cargar carreras al montar el componente
+useEffect(() => {
+  cargarCarreras();
+}, []);
 
-  useEffect(() => {
-    if (carreraId) {
-      cargarPeriodos(carreraId);
-      setPeriodoId('');
-      setCursoId('');
-      setCursos([]);
-    }
-  }, [carreraId]);
+// 2. Efecto para reaccionar al cambio de Carrera
+useEffect(() => {
+  if (carreraId) {
+    // RESET INMEDIATO antes de la petición asíncrona
+    setPeriodos([]);
+    setPeriodoId('');
+    setCursos([]);
+    setCursoId('');
 
-  useEffect(() => {
-    if (periodoId) {
-      cargarCursos(periodoId);
-      setCursoId('');
-    }
-  }, [periodoId]);
+    cargarPeriodos(carreraId);
+  } else {
+    // Si vuelve a "-- Seleccionar --"
+    setPeriodos([]);
+    setPeriodoId('');
+    setCursos([]);
+    setCursoId('');
+  }
+}, [carreraId]);
 
-  const cargarCarreras = async () => {
-    try {
-      const data = await reporteService.obtenerCarreras();
-      setCarreras(data);
-      if (data && data.length > 0) {
-        setCarreraId(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
-    }
-  };
+// 3. Efecto para reaccionar al cambio de Periodo
+useEffect(() => {
+  if (periodoId) {
+    // RESET INMEDIATO
+    setCursos([]);
+    setCursoId('');
 
-  const cargarPeriodos = async (id) => {
-    try {
-      const data = await reporteService.obtenerPeriodos(id);
-      setPeriodos(data);
-      if (data && data.length > 0) {
-        setPeriodoId(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar periodos: ' + (err.response?.data?.error || err.message));
-    }
-  };
+    cargarCursos(periodoId);
+  } else {
+    setCursos([]);
+    setCursoId('');
+  }
+}, [periodoId]);
 
-  const cargarCursos = async (id) => {
-    try {
-      const data = await reporteService.obtenerCursos(id);
-      setCursos(data);
-    } catch (err) {
-      setError('Error al cargar cursos: ' + (err.response?.data?.error || err.message));
-    }
-  };
+// 4. Cargar carreras sin autoseleccionar el primer valor
+const cargarCarreras = async () => {
+  try {
+    const data = await reporteService.obtenerCarreras();
+    setCarreras(data);
+    // REMOVIDO: setCarreraId(data[0].id); -> Mantiene el valor inicial en ""
+  } catch (err) {
+    setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
+  }
+};
 
+// 5. Cargar periodos sin autoseleccionar el primer valor
+const cargarPeriodos = async (id) => {
+  try {
+    const data = await reporteService.obtenerPeriodos(id);
+    setPeriodos(data);
+    // REMOVIDO: setPeriodoId(data[0].id); -> Mantiene el valor inicial en ""
+  } catch (err) {
+    setError('Error al cargar periodos: ' + (err.response?.data?.error || err.message));
+  }
+};
+
+// 6. Cargar cursos
+const cargarCursos = async (id) => {
+  try {
+    const data = await reporteService.obtenerCursos(id);
+    setCursos(data);
+  } catch (err) {
+    setError('Error al cargar cursos: ' + (err.response?.data?.error || err.message));
+  }
+};
   const buscar = async (sobreescribir = {}) => {
     try {
       setLoading(true);

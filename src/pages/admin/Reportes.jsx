@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { reporteService } from '../../services/reporteService';
 import useAuthStore from '../../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ const SEMESTRES = [1, 2, 3, 4, 5, 6];
 
 export default function Reportes() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [carreras, setCarreras] = useState([]);
   const [carreraSeleccionada, setCarreraSeleccionada] = useState('');
   const [gestiones, setGestiones] = useState([]);
@@ -24,6 +24,8 @@ export default function Reportes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [generado, setGenerado] = useState(false);
+
+  const debounceRef = useRef(null);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -55,53 +57,80 @@ export default function Reportes() {
     cargarCarreras();
   }, []);
 
-  const cargarCarreras = async () => {
-    try {
-      setLoading(true);
-      const data = await reporteService.obtenerCarreras();
-      setCarreras(data);
-      setError('');
-      if (data && data.length > 0) {
-        setCarreraSeleccionada(data[0].id);
-        cargarGestiones(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 1. Efecto para manejar el cambio de Carrera
+useEffect(() => {
+  if (carreraSeleccionada) {
+    // RESET INMEDIATO de estados dependientes antes de la llamada asíncrona
+    setGestiones([]);
+    setGestionId('');
+    setSemestre('');
+    setMaterias([]);
+    setGenerado(false);
 
-  const cargarGestiones = async (id) => {
-    try {
-      const data = await reporteService.obtenerGestiones(id);
-      setGestiones(data);
-      if (data && data.length > 0) {
-        setGestionId(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar gestiones: ' + (err.response?.data?.error || err.message));
-    }
-  };
+    cargarGestiones(carreraSeleccionada);
+  } else {
+    // Si deselecciona o vuelve a "-- Seleccionar --"
+    setGestiones([]);
+    setGestionId('');
+    setSemestre('');
+    setMaterias([]);
+    setGenerado(false);
+  }
+}, [carreraSeleccionada]);
 
-  const buscar = async () => {
-    if (!carreraSeleccionada) {
-      setError('Por favor selecciona una carrera.');
-      return;
-    }
-    try {
-      setLoading(true);
-      setError('');
-      const data = await reporteService.obtenerMateriasPorCarrera(carreraSeleccionada, semestre || undefined);
-      setMaterias(data);
-      setGenerado(true);
-    } catch (err) {
-      setError('Error al generar reporte: ' + (err.response?.data?.error || err.message));
-      setGenerado(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+// 2. Cargar carreras sin auto-seleccionar el primer elemento
+const cargarCarreras = async () => {
+  try {
+    setLoading(true);
+    const data = await reporteService.obtenerCarreras();
+    setCarreras(data);
+    setError('');
+    // REMOVIDO: setCarreraSeleccionada(data[0].id); -> Inicia en "" para forzar "Seleccionar"
+  } catch (err) {
+    setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
+  } finally {
+    setLoading(false);
+  }
+};
+
+// 3. Cargar gestiones sin auto-seleccionar el primer elemento
+const cargarGestiones = async (id) => {
+  try {
+    const data = await reporteService.obtenerGestiones(id);
+    setGestiones(data);
+    // REMOVIDO: setGestionId(data[0].id); -> Mantiene el valor en "" ("-- Seleccionar --")
+  } catch (err) {
+    setError('Error al cargar gestiones: ' + (err.response?.data?.error || err.message));
+  }
+};
+
+// 4. Cargar materias
+const cargarMateriasPorCarrera = async (id, sem) => {
+  try {
+    setLoading(true);
+    setError('');
+    const data = await reporteService.obtenerMateriasPorCarrera(id, sem || undefined);
+    setMaterias(data);
+    setGenerado(true);
+  } catch (err) {
+    setError('Error al generar reporte: ' + (err.response?.data?.error || err.message));
+    setGenerado(false);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// 5. Debounce para la consulta de materias
+useEffect(() => {
+  if (debounceRef.current) clearTimeout(debounceRef.current);
+  if (!carreraSeleccionada) return;
+
+  debounceRef.current = setTimeout(() => {
+    cargarMateriasPorCarrera(carreraSeleccionada, semestre);
+  }, 300);
+
+  return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+}, [carreraSeleccionada, semestre]);
 
   // Modal handlers
   const abrirModal = (type) => {
@@ -123,6 +152,11 @@ export default function Reportes() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div style={{ ...styles.root, background: ADMIN_CONFIG.bg }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -139,6 +173,7 @@ export default function Reportes() {
             </svg>
             Volver
           </button>
+
         </div>
         <div style={styles.headerBrand}>
           <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
@@ -148,6 +183,7 @@ export default function Reportes() {
           </svg>
           <span style={{ ...styles.headerTitle, color: ADMIN_CONFIG.color }}>Sistema Académico</span>
         </div>
+
       </header>
 
       <main style={styles.main}>
@@ -179,16 +215,6 @@ export default function Reportes() {
             </div>
           )}
 
-          {/* LEYENDA INFORMATIVA */}
-          <div style={styles.instructionBanner}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <span>Selecciona los parámetros deseados y presiona <strong>"Generar Reporte"</strong> para realizar la consulta.</span>
-          </div>
-
           <div style={styles.filterSection}>
             <div style={styles.filterRow}>
               <div style={styles.filterGroup}>
@@ -197,8 +223,6 @@ export default function Reportes() {
                   value={carreraSeleccionada}
                   onChange={(e) => {
                     setCarreraSeleccionada(e.target.value);
-                    setGestionId('');
-                    setSemestre('');
                     if (e.target.value) {
                       cargarGestiones(e.target.value);
                     }
@@ -236,7 +260,6 @@ export default function Reportes() {
                   value={semestre}
                   onChange={(e) => setSemestre(e.target.value)}
                   style={styles.filterSelect}
-                  disabled={!carreraSeleccionada}
                 >
                   <option value="">Todos los semestres</option>
                   {SEMESTRES.map((s) => (
@@ -244,63 +267,12 @@ export default function Reportes() {
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-              <button
-                onClick={buscar}
-                disabled={loading || !carreraSeleccionada}
-                style={{
-                  ...styles.searchBtn,
-                  opacity: (loading || !carreraSeleccionada) ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  maxWidth: 220
-                }}
-              >
-                {loading ? (
-                  <>
-                    <span style={{
-                      width: 16,
-                      height: 16,
-                      border: '2px solid white',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      display: 'inline-block',
-                      animation: 'spin 1s linear infinite'
-                    }} />
-                    Cargando...
-                  </>
-                ) : (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    Generar Reporte
-                  </>
-                )}
-              </button>
+
             </div>
           </div>
         </div>
 
-        {/* ESTADO INICIAL (Antes de presionar Generar Reporte) */}
-        {!generado && !loading && (
-          <div style={styles.initialStateCard}>
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <p style={styles.initialStateText}>
-              Selecciona los filtros requeridos y haz clic en <strong>Generar Reporte</strong> para visualizar las materias
-            </p>
-          </div>
-        )}
-
-        {/* RESULTADOS */}
         {generado && materias.length > 0 && (
           <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
@@ -395,14 +367,13 @@ export default function Reportes() {
           </div>
         )}
 
-        {/* SIN RESULTADOS */}
         {generado && materias.length === 0 && (
           <div style={styles.emptyStateCard}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
               <path d="M12 2v20M2 12h20" />
             </svg>
             <h3 style={styles.emptyStateTitle}>Sin resultados</h3>
-            <p style={styles.emptyStateDesc}>No hay materias registradas para los filtros seleccionados.</p>
+            <p style={styles.emptyStateDesc}>No hay materias registradas para esta carrera</p>
           </div>
         )}
       </main>
@@ -430,6 +401,7 @@ export default function Reportes() {
   );
 }
 
+
 const styles = {
   root: { minHeight: '100vh', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 10 },
@@ -437,27 +409,20 @@ const styles = {
   headerTitle: { fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' },
   headerActions: { display: 'flex', alignItems: 'center', gap: 10 },
   backBtn: { display: 'flex', alignItems: 'center', gap: 7, padding: '0.45rem 1rem', border: 'none', borderRadius: 8, background: '#7c3aed', color: 'white', fontSize: '0.84rem', fontWeight: 500, cursor: 'pointer', transition: 'background .15s' },
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: 7, padding: '0.45rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: 8, background: 'white', color: '#475569', fontSize: '0.84rem', fontWeight: 500, cursor: 'pointer' },
   main: { maxWidth: 1000, margin: '0 auto', padding: '3rem 1.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' },
   heroCard: { background: 'white', borderRadius: 16, padding: '2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' },
   roleChip: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.35rem 0.85rem', borderRadius: 999, fontSize: '0.82rem', fontWeight: 600, marginBottom: '1.25rem' },
   heroTitle: { fontSize: '2rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.6rem', letterSpacing: '-0.02em', lineHeight: 1.2 },
-  heroDesc: { fontSize: '0.92rem', color: '#64748b', margin: '0 0 1.5rem', lineHeight: 1.65 },
+  heroDesc: { fontSize: '0.92rem', color: '#64748b', margin: '0 0 1.75rem', lineHeight: 1.65 },
   errorBox: { display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: 10, color: '#991b1b', fontSize: '0.9rem', marginBottom: '1.25rem' },
-  
-  // Banner Informativo
-  instructionBanner: { display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f3e8ff', border: '1px solid #e9d5ff', borderRadius: 10, color: '#5b21b6', fontSize: '0.85rem', marginBottom: '1.25rem' },
-  
   filterSection: { display: 'flex', flexDirection: 'column', gap: 16, padding: '1.5rem', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' },
   filterRow: { display: 'flex', gap: 14, flexWrap: 'wrap' },
   filterGroup: { flex: 1, minWidth: 180 },
   filterLabel: { display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#64748b', marginBottom: '0.45rem' },
   filterSelect: { width: '100%', padding: '0.6rem 0.8rem', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: '0.88rem', color: '#1e293b', background: 'white', cursor: 'pointer', transition: 'border-color .15s', boxSizing: 'border-box' },
-  searchBtn: { width: '100%', padding: '0.65rem 1.5rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'background .15s' },
-  
-  // Card del estado inicial (Lupa / Vacío inicial)
-  initialStateCard: { background: 'white', borderRadius: 16, padding: '3.5rem 2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', border: '1px dashed #cbd5e1' },
-  initialStateText: { fontSize: '0.95rem', color: '#64748b', margin: 0, textAlign: 'center' },
-
+  searchBtn: { width: '100%', padding: '0.6rem 1.5rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'background .15s' },
+  searchBtnHover: { background: '#5b21b6' },
   resultsCard: { background: 'white', borderRadius: 16, padding: '2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' },
   resultsHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' },
   resultsTitle: { fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' },
