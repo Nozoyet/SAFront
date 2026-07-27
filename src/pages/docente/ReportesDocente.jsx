@@ -38,7 +38,7 @@ export default function ReportesDocente() {
       if (f.curso_id) payload.curso_id = f.curso_id;
       if (f.condicion) payload.estado = f.condicion;
       const r = await docenteService.reportePreview('calificaciones', payload);
-      setReporte({ estudiantes: r.data });
+      setReporte({ estudiantes: r.data || [] });
     } catch (err) {
       setError(err.response?.data?.message || "Error al generar reporte");
       setReporte(null);
@@ -63,12 +63,13 @@ export default function ReportesDocente() {
           }
         }
       })
-      .catch(err => setError("Error al cargar filtros"));
+      .catch(() => setError("Error al cargar filtros"));
   }, [paramCursoId]);
+
+  const tieneFiltro = Boolean(filtros.periodo_id || filtros.materia_id || filtros.curso_id);
 
   useEffect(() => {
     if (opciones.cursos.length === 0) return;
-    const tieneFiltro = filtros.periodo_id || filtros.materia_id || filtros.curso_id;
     if (!tieneFiltro) {
       setReporte(null);
       return;
@@ -76,7 +77,7 @@ export default function ReportesDocente() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => cargarPreview(filtros), 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [filtros, opciones.cursos.length]);
+  }, [filtros, opciones.cursos.length, tieneFiltro]);
 
   const changeFiltros = (nuevos) => setFiltros(nuevos);
 
@@ -270,15 +271,21 @@ export default function ReportesDocente() {
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: C.text, margin: "0 0 0.6rem", letterSpacing: "-0.02em" }}>
             Reporte de <span style={{ color: C.accent }}>Calificaciones</span>
           </h1>
-          <p style={{ fontSize: "1rem", color: C.textSub, margin: "0 0 1.75rem", lineHeight: 1.6 }}>
+          <p style={{ fontSize: "1rem", color: C.textSub, margin: "0 0 1.25rem", lineHeight: 1.6 }}>
             Consulta las calificaciones de tus cursos. Selecciona cualquier filtro para ver resultados al instante.
           </p>
-          
+
           {error && (
             <div style={{ background: C.redDim, border: `1px solid ${C.red}33`, borderRadius: 12, padding: "14px 18px", color: C.red, fontSize: 15, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
               <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: 16 }}></i> {error}
             </div>
           )}
+
+          {/* LEYENDA INFORMATIVA */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0.75rem 1rem", background: C.bg, border: `1px solid ${C.borderMid}`, borderRadius: 10, color: C.accent, fontSize: "0.85rem", marginBottom: "1.25rem" }}>
+            <i className="bi bi-info-circle-fill" style={{ fontSize: 16, color: C.accent }}></i>
+            <span>Selecciona un periodo, materia o curso para realizar la consulta en tiempo real.</span>
+          </div>
 
           <FiltrosReportes
             campos={["periodo", "materia", "curso", "condicion"]}
@@ -297,30 +304,40 @@ export default function ReportesDocente() {
         </div>
 
         {/* Cargando */}
-       {loading && (
-  <Loading 
-    texto="Procesando listado de estudiantes…" 
-    color={C.accent} 
-    size={36} 
-  />
-)}
+        {loading && (
+          <Loading 
+            texto="Procesando listado de estudiantes…" 
+            color={C.accent} 
+            size={36} 
+          />
+        )}
+
+        {/* ESTADO INICIAL (Aún no se ha seleccionado filtro) */}
+        {!loading && !tieneFiltro && (
+          <div style={{ background: "white", borderRadius: 16, padding: "3.5rem 2rem", boxShadow: "0 3px 12px rgba(0,0,0,0.03)", border: "1.5px dashed #cbd5e1", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.85rem" }}>
+            <i className="bi bi-search" style={{ fontSize: 40, color: C.textMuted }}></i>
+            <p style={{ fontSize: "0.95rem", color: C.textSub, margin: 0, fontWeight: 500 }}>
+              Selecciona al menos un filtro arriba para visualizar las calificaciones
+            </p>
+          </div>
+        )}
 
         {/* Tabla de Resultados + Métricas */}
-        {reporte && !loading && (
+        {reporte && !loading && estudiantesFiltrados.length > 0 && (
           <div style={{ background: "white", borderRadius: 16, padding: "2rem", boxShadow: "0 3px 12px rgba(0,0,0,0.03)", border: "1.5px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: `1px solid ${C.grayDim}` }}>
               <h2 style={{ fontSize: "1.35rem", fontWeight: 700, color: C.text, margin: 0 }}>Resultados Encontrados</h2>
             </div>
 
-            {/* Métricas con iconos limpios removidos */}
+            {/* Métricas */}
             <div style={{ 
               width: "100%", 
               background: "#f8fafc", 
               borderRadius: 12,
               border: "1px solid #e2e8f0", 
               display: "flex", 
-              justifyContent: "space-around", 
+              justify: "space-around", 
               alignItems: "center", 
               padding: "1.2rem 1.5rem", 
               boxSizing: "border-box", 
@@ -366,7 +383,6 @@ export default function ReportesDocente() {
                     const esReprobado = e.estado === "Reprobado";
                     const estadoColor = esAprobado ? C.green : esReprobado ? C.red : C.amber;
                     
-                    // Selección de icono dinámico para el estado
                     const estadoIcono = esAprobado 
                       ? "bi-check-circle-fill" 
                       : esReprobado 
@@ -387,12 +403,10 @@ export default function ReportesDocente() {
                         </td>
                         <td style={{ padding: "1rem 1.25rem", fontSize: "1rem", color: C.textSub }}>{e.materia || e.curso?.materia?.nombre || "—"}</td>
                         
-                        {/* Nota Final completamente limpia */}
                         <td style={{ padding: "1rem 1.25rem", fontSize: "1.1rem", textAlign: "center", color: notaNum !== null ? (notaNum >= 51 ? C.green : C.red) : C.textMuted, fontWeight: 800 }}>
                           {notaNum !== null ? notaNum.toFixed(1) : "—"}
                         </td>
                         
-                        {/* Estado con Badge e Iconos integrados */}
                         <td style={{ padding: "1rem 1.25rem", textAlign: "center" }}>
                           <span style={{ 
                             display: "inline-flex",
@@ -430,18 +444,17 @@ export default function ReportesDocente() {
           </div>
         )}
 
-        {/* Estados vacíos */}
-        {!loading && !reporte && (filtros.periodo_id || filtros.materia_id || filtros.curso_id) && (
-          <div style={{ background: "white", borderRadius: 16, padding: "4rem 2rem", boxShadow: "0 3px 12px rgba(0,0,0,0.03)", border: "1.5px solid #e2e8f0", textAlign: "center", color: C.textMuted }}>
-            <i className="bi bi-inbox" style={{ fontSize: 44, display: "block", marginBottom: 14 }}></i>
-            <p style={{ fontWeight: 600, fontSize: "1.1rem", margin: 0 }}>No hay registros para los filtros seleccionados</p>
-          </div>
-        )}
-
-        {!loading && !reporte && !filtros.periodo_id && !filtros.materia_id && !filtros.curso_id && (
-          <div style={{ background: "white", borderRadius: 16, padding: "4rem 2rem", boxShadow: "0 3px 12px rgba(0,0,0,0.03)", border: "1.5px solid #e2e8f0", textAlign: "center", color: C.textMuted }}>
-            <i className="bi bi-search" style={{ fontSize: 44, display: "block", marginBottom: 14 }}></i>
-            <p style={{ fontWeight: 600, fontSize: "1.1rem", margin: 0 }}>Selecciona un filtro para ver las calificaciones en tiempo real</p>
+        {/* SIN RESULTADOS (Filtros activos pero 0 registros encontrados) */}
+        {!loading && tieneFiltro && reporte && estudiantesFiltrados.length === 0 && (
+          <div style={{ background: "white", borderRadius: 16, padding: "3rem 2rem", boxShadow: "0 3px 12px rgba(0,0,0,0.03)", border: "1.5px solid #e2e8f0", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: C.amberDim, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "0.25rem" }}>
+              <i className="bi bi-search-heart" style={{ fontSize: 32, color: C.amber }}></i>
+            </div>
+            <h3 style={{ color: C.text, margin: 0, fontSize: "1.15rem", fontWeight: 700 }}>No se encontraron datos</h3>
+            <p style={{ color: C.textSub, margin: 0, fontSize: "0.9rem", lineHeight: 1.5 }}>
+              No se encontraron calificaciones con los filtros seleccionados. <br />
+              Por favor, <strong>intenta realizar la búsqueda con otros parámetros</strong> o selecciona otra materia/curso.
+            </p>
           </div>
         )}
       </main>
