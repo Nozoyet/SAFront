@@ -94,6 +94,14 @@ const guardarEdicion = async (e) => {
     setEditError("El código es obligatorio");
     return;
   }
+  if (/\d/.test(editForm.nombre)) {
+    setEditError("El nombre no puede contener números");
+    return;
+  }
+  if (editForm.nombre.trim().length > 20) {
+    setEditError("El nombre no puede tener más de 20 caracteres");
+    return;
+  }
 
   setEditSaving(true);
   try {
@@ -222,7 +230,17 @@ const guardarEdicion = async (e) => {
 
                 <div style={styles.field}>
                   <label style={styles.label}>Nombre *</label>
-                  <input name="nombre" value={form.nombre} onChange={handleChange} style={styles.input} required placeholder="Ej: Ingeniería de Sistemas" />
+                  <input
+                    name="nombre"
+                    value={editForm.nombre}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "").slice(0, 20);
+                      setEditForm((prev) => ({ ...prev, nombre: value }));
+                    }}
+                    style={styles.input}
+                    maxLength={20}
+                    placeholder="Ej: Ingeniería de Sistemas"
+                  />
                 </div>
 
                 <div style={styles.field}>
@@ -275,7 +293,7 @@ const guardarEdicion = async (e) => {
 
         <div style={styles.field}>
           <label style={styles.label}>Descripción</label>
-          <textarea name="descripcion" rows="2" value={editForm.descripcion} onChange={handleEditChange} style={{ ...styles.input, resize: "vertical", minHeight: 60, fontFamily: "inherit" }} />
+          <textarea name="descripcion" rows="2" value={editForm.descripcion} onChange={handleEditChange} maxLength={100} style={{ ...styles.input, resize: "vertical", minHeight: 60, fontFamily: "inherit" }} />
         </div>
 
         <div style={styles.field}>

@@ -183,8 +183,20 @@ export default function PensumForm() {
     setMError("El nombre es obligatorio");
     return;
   }
+  if (/\d/.test(mForm.nombre)) {
+    setMError("El nombre no puede contener números");
+    return;
+  }
+  if (mForm.nombre.trim().length > 20) {
+    setMError("El nombre no puede tener más de 20 caracteres");
+    return;
+  }
   if (!mForm.creditos || Number(mForm.creditos) < 1) {
     setMError("Los créditos deben ser al menos 1");
+    return;
+  }
+  if (Number(mForm.creditos) > 20) {
+    setMError("Los créditos no pueden ser más de 20");
     return;
   }
   if (!mForm.semestre) {
@@ -192,7 +204,7 @@ export default function PensumForm() {
     return;
   }
 
-    if (materias.some((m) => m._tempId !== modal?.tempId && m.codigo === mForm.codigo)) {
+    if (materias.some((m) => m._tempId !== modal?.tempId && m.codigo.trim().toUpperCase() === mForm.codigo.trim().toUpperCase())) {
       setMError("Ya existe una materia con ese código");
       return;
     }
@@ -519,12 +531,23 @@ const guardarTodo = async () => {
 
                 <div style={styles.field}>
                   <label style={styles.label}>Nombre *</label>
-                  <input name="nombre" value={mForm.nombre} onChange={handleMChange} style={styles.input} required placeholder="Nombre completo de la materia" />
+                  <input
+                    name="nombre"
+                    value={mForm.nombre}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "").slice(0, 20);
+                      setMForm((prev) => ({ ...prev, nombre: value }));
+                    }}
+                    style={styles.input}
+                    required
+                    maxLength={20}
+                    placeholder="Nombre completo de la materia"
+                  />
                 </div>
 
                 <div style={styles.field}>
                   <label style={styles.label}>Descripción</label>
-                  <textarea name="descripcion" rows="2" value={mForm.descripcion} onChange={handleMChange} style={{ ...styles.input, resize: "vertical", minHeight: 60, fontFamily: "inherit" }} placeholder="Breve descripción" />
+                  <textarea name="descripcion" rows="2" value={mForm.descripcion} onChange={handleMChange} maxLength={100} style={{ ...styles.input, resize: "vertical", minHeight: 60, fontFamily: "inherit" }} placeholder="Breve descripción" />
                 </div>
 
                 <div style={styles.field}>

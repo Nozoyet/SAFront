@@ -202,6 +202,7 @@ function PasoPeriodo({ onNext }) {
     e.preventDefault(); setError(""); setFe({});
     const errs = {};
     if (!form.codigo.trim()) errs.codigo = "El código del período es obligatorio.";
+    else if (form.codigo.trim().length > 20) errs.codigo = "Máximo 20 caracteres.";
     if (!form.fechaInicio) errs.fechaInicio = "La fecha de inicio es obligatoria.";
     if (!form.fechaFin) errs.fechaFin = "La fecha de fin es obligatoria.";
     if (form.fechaInicio && form.fechaFin && form.fechaFin <= form.fechaInicio) errs.fechaFin = "La fecha de fin debe ser posterior a la de inicio.";
@@ -219,7 +220,7 @@ function PasoPeriodo({ onNext }) {
       <Alert msg={error} />
       <form onSubmit={handleSubmit} noValidate>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-          <Input label="Código del período" value={form.codigo} onChange={set("codigo")} required error={fe.codigo} style={{ gridColumn: "1 / -1" }} />
+          <Input label="Código del período" value={form.codigo} onChange={set("codigo")} required error={fe.codigo} style={{ gridColumn: "1 / -1" }} maxLength={20} />
           <Input label="Fecha inicio" value={form.fechaInicio} onChange={set("fechaInicio")} type="date" required error={fe.fechaInicio} />
           <Input label="Fecha fin" value={form.fechaFin} onChange={set("fechaFin")} type="date" required error={fe.fechaFin} />
           <Sel label="Carrera" value={form.idCarrera} onChange={set("idCarrera")}

@@ -11,8 +11,8 @@ const RULES = {
   contrasena:   v => !v ? "La contraseña es requerida" : v.length < 6 ? "Mínimo 6 caracteres" : "",
   idCarrera:    v => !v ? "Selecciona una carrera" : "",
   matricula:    v => !v.trim() ? "La matrícula es requerida" : "",
-  telefonoEst:  v => v && !/^\d{7,15}$/.test(v.replace(/\s/g, "")) ? "Teléfono inválido" : "",
-  telefonoDoc:  v => v && !/^\d{7,15}$/.test(v.replace(/\s/g, "")) ? "Teléfono inválido" : "",
+  telefonoEst:  v => v && !/^[67]\d{7}$/.test(v.replace(/\s/g, "")) ? "El teléfono debe iniciar con 6 o 7 y tener 8 dígitos" : "",
+  telefonoDoc:  v => v && !/^[67]\d{7}$/.test(v.replace(/\s/g, "")) ? "El teléfono debe iniciar con 6 o 7 y tener 8 dígitos" : "",
 };
 
 const REQUIRED_ESTUDIANTE = ["nombre1", "apellidoP", "email", "nombreUsuario", "contrasena", "idCarrera", "matricula"];
@@ -219,13 +219,28 @@ export default function FormCrearUsuario({ onUsuarioCreado, onCancelar }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label style={lbl}>Primer nombre <span style={{ color: "#EF4444" }}>*</span></label>
-            <input name="nombre1" value={form.nombre1} onChange={handleChange} onBlur={handleBlur} style={inp("nombre1")} />
+            <input
+              name="nombre1"
+              value={form.nombre1}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
+                setForm(prev => ({ ...prev, nombre1: value }));
+              }}
+              onBlur={handleBlur}
+              style={inp("nombre1")}
+            />
             {errMsg("nombre1")}
             {okMsg("nombre1", "Correcto")}
           </div>
           <div>
             <label style={lbl}>Segundo nombre</label>
-            <input name="nombre2" value={form.nombre2} onChange={handleChange}
+            <input 
+              name="nombre2" 
+              value={form.nombre2} 
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
+                setForm(prev => ({ ...prev, nombre2: value }));
+              }}
               style={{ ...inp("nombre2"), border: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }} />
           </div>
         </div>
@@ -234,13 +249,25 @@ export default function FormCrearUsuario({ onUsuarioCreado, onCancelar }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label style={lbl}>Apellido paterno <span style={{ color: "#EF4444" }}>*</span></label>
-            <input name="apellidoP" value={form.apellidoP} onChange={handleChange} onBlur={handleBlur} style={inp("apellidoP")} />
+            <input name="apellidoP" 
+              value={form.apellidoP} 
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
+                setForm(prev => ({ ...prev, apellidoP: value }));
+              }}
+              onBlur={handleBlur} 
+              style={inp("apellidoP")} />
             {errMsg("apellidoP")}
             {okMsg("apellidoP", "Correcto")}
           </div>
           <div>
             <label style={lbl}>Apellido materno</label>
-            <input name="apellidoM" value={form.apellidoM} onChange={handleChange}
+            <input name="apellidoM" 
+              value={form.apellidoM} 
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, "");
+                setForm(prev => ({ ...prev, apellidoM: value }));
+              }}
               style={{ ...inp("apellidoM"), border: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }} />
           </div>
         </div>
@@ -277,14 +304,26 @@ export default function FormCrearUsuario({ onUsuarioCreado, onCancelar }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={lbl}>Matrícula <span style={{ color: "#EF4444" }}>*</span></label>
-                <input name="matricula" value={form.matricula} onChange={handleChange} onBlur={handleBlur}
+                <input name="matricula" 
+                  value={form.matricula} 
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^A-Za-z0-9-]/g, "");
+                    setForm(prev => ({ ...prev, matricula: value }));
+                  }}
+                  onBlur={handleBlur}
                   placeholder="MAT-2025001" style={inp("matricula")} />
                 {errMsg("matricula")}
                 {okMsg("matricula", "Correcto")}
               </div>
               <div>
                 <label style={lbl}>Teléfono</label>
-                <input type="tel" name="telefonoEst" value={form.telefonoEst} onChange={handleChange} onBlur={handleBlur}
+                <input type="tel" name="telefonoEst" 
+                  value={form.telefonoEst} 
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-8]/g, "");
+                    setForm(prev => ({ ...prev, telefonoEst: value }));
+                  }}
+                  onBlur={handleBlur}
                   style={inp("telefonoEst")} />
                 {errMsg("telefonoEst")}
                 {okMsg("telefonoEst", "Correcto")}
@@ -304,14 +343,25 @@ export default function FormCrearUsuario({ onUsuarioCreado, onCancelar }) {
           <>
             <div>
               <label style={lbl}>Especialidad</label>
-              <input name="especialidad" value={form.especialidad} onChange={handleChange}
+              <input name="especialidad" 
+                value={form.especialidad} 
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s-]/g, "");
+                  setForm(prev => ({ ...prev, especialidad: value }));
+                }}
                 placeholder="Ej. Chef Ejecutivo - Cocina Internacional"
                 style={{ ...inp("especialidad"), border: "1px solid #E2E8F0", backgroundColor: "#F8FAFC" }} />
             </div>
 
             <div>
               <label style={lbl}>Teléfono</label>
-              <input type="tel" name="telefonoDoc" value={form.telefonoDoc} onChange={handleChange} onBlur={handleBlur}
+              <input type="tel" name="telefonoDoc" 
+                value={form.telefonoDoc} 
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setForm(prev => ({ ...prev, telefonoDoc: value }));
+                }}
+                onBlur={handleBlur}
                 style={inp("telefonoDoc")} />
               {errMsg("telefonoDoc")}
               {okMsg("telefonoDoc", "Correcto")}
@@ -348,7 +398,13 @@ export default function FormCrearUsuario({ onUsuarioCreado, onCancelar }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label style={lbl}>Nombre de usuario <span style={{ color: "#EF4444" }}>*</span></label>
-            <input name="nombreUsuario" value={form.nombreUsuario} onChange={handleChange} onBlur={handleBlur} style={inp("nombreUsuario")} />
+            <input name="nombreUsuario" 
+              value={form.nombreUsuario} 
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^A-Za-z0-9]/g, "");
+                setForm(prev => ({ ...prev, nombreUsuario: value }));
+              }}
+              onBlur={handleBlur} style={inp("nombreUsuario")} />
             {errMsg("nombreUsuario")}
             {okMsg("nombreUsuario", "Disponible")}
           </div>
