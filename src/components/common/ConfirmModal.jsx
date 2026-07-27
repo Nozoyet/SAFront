@@ -14,7 +14,7 @@ export default function ConfirmModal({ open, title, message, onConfirm, onCancel
         <h3 style={styles.title}>{title || "¿Estás seguro?"}</h3>
         {message && <p style={styles.message}>{message}</p>}
         <div style={styles.actions}>
-          <button onClick={onConfirm} style={styles.btnDanger}>Sí, eliminar</button>
+          <button onClick={onConfirm} style={styles.btnDanger}>Sí, volver</button>
           <button onClick={onCancel} style={styles.btnCancel}>Cancelar</button>
         </div>
       </div>
