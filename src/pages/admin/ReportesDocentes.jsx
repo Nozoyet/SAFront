@@ -12,7 +12,7 @@ const ADMIN_CONFIG = {
 
 export default function ReportesDocentes() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [carreras, setCarreras] = useState([]);
   const [carreraId, setCarreraId] = useState('');
@@ -88,7 +88,6 @@ export default function ReportesDocentes() {
     }
   };
 
-  // Función ejecutada únicamente al hacer clic en "Generar Reporte"
   const buscar = async () => {
     try {
       setLoading(true);
@@ -213,6 +212,16 @@ export default function ReportesDocentes() {
             </div>
           )}
 
+          {/* LEYENDA INFORMATIVA PREVIA */}
+          <div style={styles.instructionBanner}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span>Selecciona los parámetros deseados y presiona <strong>"Generar Reporte"</strong> para realizar la consulta.</span>
+          </div>
+
           <div style={styles.filterSection}>
             <div style={styles.filterRow}>
               <div style={styles.filterGroup}>
@@ -268,7 +277,6 @@ export default function ReportesDocentes() {
               </div>
             </div>
 
-            {/* BOTÓN GENERAR REPORTE */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
               <button
                 onClick={buscar}
@@ -310,6 +318,20 @@ export default function ReportesDocentes() {
           </div>
         </div>
 
+        {/* ESTADO INICIAL (Antes de pulsar Generar Reporte) */}
+        {!generado && !loading && (
+          <div style={styles.initialStateCard}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <p style={styles.initialStateText}>
+              Selecciona un filtro y haz clic en <strong>Generar Reporte</strong> para consultar los datos
+            </p>
+          </div>
+        )}
+
+        {/* RESULTADOS OBTENIDOS */}
         {generado && data.length > 0 && (
           <div style={styles.resultsCard}>
             <div style={styles.resultsHeader}>
@@ -335,8 +357,8 @@ export default function ReportesDocentes() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((row, idx) => (
-                    <tr key={`${row.idDocente}-${row.idCurso}`} style={{ ...styles.tableRow, background: idx % 2 === 0 ? '#f8fafc' : 'white' }}>
+                  {data.map((row) => (
+                    <tr key={`${row.idDocente}-${row.idCurso}`} style={{ ...styles.tableRow, background: 'white' }}>
                       <td style={styles.tableCell}>{row.docente}</td>
                       <td style={styles.tableCell}>{row.especialidad || '—'}</td>
                       <td style={styles.tableCell}>{row.curso}</td>
@@ -397,6 +419,7 @@ export default function ReportesDocentes() {
           </div>
         )}
 
+        {/* SIN RESULTADOS LUEGO DE GENERAR */}
         {generado && data.length === 0 && (
           <div style={styles.emptyStateCard}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
@@ -438,19 +461,27 @@ const styles = {
   headerTitle: { fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' },
   headerActions: { display: 'flex', alignItems: 'center', gap: 10 },
   backBtn: { display: 'flex', alignItems: 'center', gap: 7, padding: '0.45rem 1rem', border: 'none', borderRadius: 8, background: '#7c3aed', color: 'white', fontSize: '0.84rem', fontWeight: 500, cursor: 'pointer', transition: 'background .15s' },
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: 7, padding: '0.45rem 1rem', border: '1.5px solid #e2e8f0', borderRadius: 8, background: 'white', color: '#475569', fontSize: '0.84rem', fontWeight: 500, cursor: 'pointer' },
   main: { maxWidth: 1000, margin: '0 auto', padding: '3rem 1.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' },
   heroCard: { background: 'white', borderRadius: 16, padding: '2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' },
   roleChip: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.35rem 0.85rem', borderRadius: 999, fontSize: '0.82rem', fontWeight: 600, marginBottom: '1.25rem' },
   heroTitle: { fontSize: '2rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.6rem', letterSpacing: '-0.02em', lineHeight: 1.2 },
-  heroDesc: { fontSize: '0.92rem', color: '#64748b', margin: '0 0 1.75rem', lineHeight: 1.65 },
+  heroDesc: { fontSize: '0.92rem', color: '#64748b', margin: '0 0 1.5rem', lineHeight: 1.65 },
   errorBox: { display: 'flex', alignItems: 'center', gap: 12, padding: '0.85rem 1rem', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: 10, color: '#991b1b', fontSize: '0.9rem', marginBottom: '1.25rem' },
+  
+  // Banner Informativo
+  instructionBanner: { display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f3e8ff', border: '1px solid #e9d5ff', borderRadius: 10, color: '#5b21b6', fontSize: '0.85rem', marginBottom: '1.25rem' },
+  
   filterSection: { display: 'flex', flexDirection: 'column', gap: 16, padding: '1.5rem', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' },
   filterRow: { display: 'flex', gap: 14, flexWrap: 'wrap' },
   filterGroup: { flex: 1, minWidth: 180 },
   filterLabel: { display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#64748b', marginBottom: '0.45rem' },
   filterSelect: { width: '100%', padding: '0.6rem 0.8rem', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: '0.88rem', color: '#1e293b', background: 'white', cursor: 'pointer', transition: 'border-color .15s', boxSizing: 'border-box' },
   searchBtn: { width: '100%', padding: '0.65rem 1.5rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'background .15s' },
+  
+  // Card del estado inicial (Imagen referencial)
+  initialStateCard: { background: 'white', borderRadius: 16, padding: '3.5rem 2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.85rem', border: '1px dashed #cbd5e1' },
+  initialStateText: { fontSize: '0.95rem', color: '#64748b', margin: 0, textAlign: 'center' },
+
   resultsCard: { background: 'white', borderRadius: 16, padding: '2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' },
   resultsHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' },
   resultsTitle: { fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' },
