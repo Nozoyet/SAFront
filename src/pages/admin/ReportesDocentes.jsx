@@ -55,29 +55,56 @@ export default function ReportesDocentes() {
     }
   }, [periodoId]);
 
-  const cargarCarreras = async () => {
-    try {
-      const data = await reporteService.obtenerCarreras();
-      setCarreras(data);
-      if (data && data.length > 0) {
-        setCarreraId(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
-    }
-  };
+ const cargarCarreras = async () => {
+  try {
+    const data = await reporteService.obtenerCarreras();
+    setCarreras(data);
+    // REMOVIDO: setCarreraId(data[0].id); -> Ahora inicia en "" ("-- Seleccionar --")
+  } catch (err) {
+    setError('Error al cargar carreras: ' + (err.response?.data?.error || err.message));
+  }
+};
 
-  const cargarPeriodos = async (id) => {
-    try {
-      const data = await reporteService.obtenerPeriodos(id);
-      setPeriodos(data);
-      if (data && data.length > 0) {
-        setPeriodoId(data[0].id);
-      }
-    } catch (err) {
-      setError('Error al cargar periodos: ' + (err.response?.data?.error || err.message));
-    }
-  };
+useEffect(() => {
+  if (carreraId) {
+    // RESET INMEDIATO antes de hacer el fetch
+    setPeriodos([]);
+    setPeriodoId('');
+    setCursos([]);
+    setCursoId('');
+    
+    cargarPeriodos(carreraId);
+  } else {
+    // Si vuelve a seleccionar "-- Seleccionar --"
+    setPeriodos([]);
+    setPeriodoId('');
+    setCursos([]);
+    setCursoId('');
+  }
+}, [carreraId]);
+
+ const cargarPeriodos = async (id) => {
+  try {
+    const data = await reporteService.obtenerPeriodos(id);
+    setPeriodos(data);
+    // REMOVIDO: setPeriodoId(data[0].id); -> Mantiene "-- Seleccionar --"
+  } catch (err) {
+    setError('Error al cargar periodos: ' + (err.response?.data?.error || err.message));
+  }
+};
+
+useEffect(() => {
+  if (periodoId) {
+    // RESET INMEDIATO
+    setCursos([]);
+    setCursoId('');
+    
+    cargarCursos(periodoId);
+  } else {
+    setCursos([]);
+    setCursoId('');
+  }
+}, [periodoId]);
 
   const cargarCursos = async (id) => {
     try {
