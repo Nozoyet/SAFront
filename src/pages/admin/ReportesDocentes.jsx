@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { reporteService } from '../../services/reporteService';
 import useAuthStore from '../../stores/useAuthStore';
 import { useNavigate } from 'react-router-dom';
@@ -30,8 +30,6 @@ export default function ReportesDocentes() {
   const [fechaFin, setFechaFin] = useState('');
   const [nombre, setNombre] = useState('');
   const [nombreUsuario, setNombreUsuario] = useState('');
-
-  const debounceRef = useRef(null);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -90,14 +88,7 @@ export default function ReportesDocentes() {
     }
   };
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      buscar();
-    }, 300);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [carreraId, periodoId, cursoId, fechaInicio, fechaFin, nombre, nombreUsuario]);
-
+  // Función ejecutada únicamente al hacer clic en "Generar Reporte"
   const buscar = async () => {
     try {
       setLoading(true);
@@ -166,11 +157,6 @@ export default function ReportesDocentes() {
     { label: 'Total Docentes', value: data.length, bg: '#ede9fe', text: '#7c3aed' },
   ], [data]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
-
   return (
     <div style={{ ...styles.root, background: ADMIN_CONFIG.bg }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -187,7 +173,6 @@ export default function ReportesDocentes() {
             </svg>
             Volver
           </button>
-
         </div>
         <div style={styles.headerBrand}>
           <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
@@ -197,8 +182,8 @@ export default function ReportesDocentes() {
           </svg>
           <span style={{ ...styles.headerTitle, color: ADMIN_CONFIG.color }}>Sistema Académico</span>
         </div>
-
       </header>
+
       <main style={styles.main}>
         <div style={{ ...styles.heroCard, borderTop: `4px solid ${ADMIN_CONFIG.color}` }}>
           <div style={{ ...styles.roleChip, background: ADMIN_CONFIG.accent, color: ADMIN_CONFIG.color }}>
@@ -281,7 +266,46 @@ export default function ReportesDocentes() {
                 <label style={styles.filterLabel}>Fecha fin</label>
                 <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} style={styles.filterSelect} />
               </div>
+            </div>
 
+            {/* BOTÓN GENERAR REPORTE */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+              <button
+                onClick={buscar}
+                disabled={loading}
+                style={{
+                  ...styles.searchBtn,
+                  opacity: loading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  maxWidth: 220
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span style={{
+                      width: 16,
+                      height: 16,
+                      border: '2px solid white',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      display: 'inline-block',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    Generar Reporte
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -407,7 +431,6 @@ export default function ReportesDocentes() {
   );
 }
 
-
 const styles = {
   root: { minHeight: '100vh', fontFamily: "'DM Sans', 'Segoe UI', sans-serif" },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 10 },
@@ -427,7 +450,7 @@ const styles = {
   filterGroup: { flex: 1, minWidth: 180 },
   filterLabel: { display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#64748b', marginBottom: '0.45rem' },
   filterSelect: { width: '100%', padding: '0.6rem 0.8rem', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: '0.88rem', color: '#1e293b', background: 'white', cursor: 'pointer', transition: 'border-color .15s', boxSizing: 'border-box' },
-  searchBtn: { width: '100%', padding: '0.6rem 1.5rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'background .15s' },
+  searchBtn: { width: '100%', padding: '0.65rem 1.5rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', transition: 'background .15s' },
   resultsCard: { background: 'white', borderRadius: 16, padding: '2rem', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' },
   resultsHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' },
   resultsTitle: { fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' },
