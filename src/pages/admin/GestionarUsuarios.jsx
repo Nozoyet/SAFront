@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../stores/useAuthStore";
-import { getUsuarios, eliminarUsuario, asignarRol, impersonarUsuario } from "../../services/api";
+import { getUsuarios, eliminarUsuario, impersonarUsuario } from "../../services/api";
 import FormCrearUsuario from "../../components/forms/FormCrearUsuario";
 
 const ADMIN_CONFIG = {
@@ -94,16 +94,6 @@ const handleImpersonar = async (u) => {
     } catch (e) {
       mostrarNotif(e.response?.data?.message || "Error al eliminar.", "error");
     } finally { setConfirmId(null); }
-  };
-
-  const handleRol = async (id, rol) => {
-    try {
-      await asignarRol(id, rol);
-      setUsuarios(p => p.map(u => u.id === id ? { ...u, rol } : u));
-      mostrarNotif("Rol actualizado correctamente.");
-    } catch (e) {
-      mostrarNotif(e.response?.data?.message || "Error al cambiar rol.", "error");
-    }
   };
 
   const filtrados = usuarios.filter(u => {
@@ -313,19 +303,15 @@ const paginados = filtrados.slice(inicio, inicio + porPagina);
                     </td>
                     <td style={{ padding: "13px 16px", color: "#475569" }}>{u.email}</td>
                     <td style={{ padding: "13px 16px" }}>
-                      <select
-                        value={u.rol}
-                        onChange={e => handleRol(u.id, e.target.value)}
-                        style={{
-                          backgroundColor: ROL_CONFIG[u.rol]?.bg ?? "#F3F4F6",
-                          color: ROL_CONFIG[u.rol]?.color ?? "#6B7280",
-                          border: `1px solid ${ROL_CONFIG[u.rol]?.color ?? "#6B7280"}44`,
-                          borderRadius: 20, padding: "4px 10px",
-                          fontSize: 11, fontWeight: 700, cursor: "pointer", outline: "none",
-                        }}
-                      >
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
+                      <span style={{
+                        backgroundColor: ROL_CONFIG[u.rol]?.bg ?? "#F3F4F6",
+                        color: ROL_CONFIG[u.rol]?.color ?? "#6B7280",
+                        border: `1px solid ${ROL_CONFIG[u.rol]?.color ?? "#6B7280"}44`,
+                        borderRadius: 20, padding: "4px 10px",
+                        fontSize: 11, fontWeight: 700,
+                      }}>
+                        {u.rol}
+                      </span>
                     </td>
                     <td style={{ padding: "13px 16px" }}>
                       <button

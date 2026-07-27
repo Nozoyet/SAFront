@@ -30,15 +30,12 @@ api.interceptors.response.use(
 
 // Obtener todos los usuarios
 export const getUsuarios = () => api.get('/usuarios');
- 
+
 // Crear un nuevo usuario
 export const crearUsuario = (data) => api.post('/usuarios', data);
- 
+
 // Eliminar un usuario (soft delete)
 export const eliminarUsuario = (id) => api.delete(`/usuarios/${id}`);
- 
-// Asignar rol a un usuario
-export const asignarRol = (id, rol) => api.put(`/usuarios/${id}/rol`, { rol });
 
 export default api;
 
