@@ -55,6 +55,10 @@ export default function Perfil() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Verificador en tiempo real de coincidencia de contraseñas
+  const mostrarVerificador = form.contrasena.length > 0 && form.confirmar.length > 0;
+  const contrasenasCoinciden = form.contrasena === form.confirmar;
+
   const handleSubmit = async () => {
     setError(""); setExito("");
     if (form.contrasena && form.contrasena !== form.confirmar) {
@@ -217,22 +221,50 @@ export default function Perfil() {
                   <label style={labelStyle}>Confirmar contraseña</label>
                   <input type="password" name="confirmar" value={form.confirmar} onChange={handleChange}
                     placeholder="Repetir nueva contraseña"
-                    style={{ ...inputStyle, fontSize: 12 }}
-                    onFocus={e => e.target.style.borderColor = "#6366F1"}
-                    onBlur={e => e.target.style.borderColor = "#E2E8F0"} />
+                    style={{
+                      ...inputStyle,
+                      fontSize: 12,
+                      borderColor: mostrarVerificador
+                        ? (contrasenasCoinciden ? "#86EFAC" : "#FECACA")
+                        : "#E2E8F0",
+                    }}
+                    onFocus={e => e.target.style.borderColor = mostrarVerificador
+                      ? (contrasenasCoinciden ? "#22C55E" : "#EF4444")
+                      : "#6366F1"}
+                    onBlur={e => e.target.style.borderColor = mostrarVerificador
+                      ? (contrasenasCoinciden ? "#86EFAC" : "#FECACA")
+                      : "#E2E8F0"} />
+
+                  {mostrarVerificador && (
+                    <p style={{
+                      margin: "6px 0 0", fontSize: 11.5, fontWeight: 600,
+                      display: "flex", alignItems: "center", gap: 5,
+                      color: contrasenasCoinciden ? "#16A34A" : "#DC2626",
+                    }}>
+                      {contrasenasCoinciden ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      )}
+                      {contrasenasCoinciden ? "Las contraseñas coinciden" : "Las contraseñas no coinciden"}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div style={{ height: 1, backgroundColor: "#F1F5F9" }} />
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={handleSubmit} disabled={cargando} style={{
-                  padding: "10px 24px", borderRadius: 8, border: "none",
-                  backgroundColor: cargando ? "#A5B4FC" : "#6366F1",
-                  color: "#fff", fontSize: 13, fontWeight: 600,
-                  cursor: cargando ? "not-allowed" : "pointer",
-                  boxShadow: cargando ? "none" : "0 4px 14px rgba(99,102,241,0.35)",
-                }}>
+                <button
+                  onClick={handleSubmit}
+                  disabled={cargando || (mostrarVerificador && !contrasenasCoinciden)}
+                  style={{
+                    padding: "10px 24px", borderRadius: 8, border: "none",
+                    backgroundColor: (cargando || (mostrarVerificador && !contrasenasCoinciden)) ? "#A5B4FC" : "#6366F1",
+                    color: "#fff", fontSize: 13, fontWeight: 600,
+                    cursor: (cargando || (mostrarVerificador && !contrasenasCoinciden)) ? "not-allowed" : "pointer",
+                    boxShadow: (cargando || (mostrarVerificador && !contrasenasCoinciden)) ? "none" : "0 4px 14px rgba(99,102,241,0.35)",
+                  }}>
                   {cargando ? "Guardando..." : "Guardar cambios"}
                 </button>
               </div>

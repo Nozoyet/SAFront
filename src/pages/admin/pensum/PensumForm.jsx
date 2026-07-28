@@ -20,6 +20,7 @@ export default function PensumForm() {
   const [form, setForm] = useState({ idCarrera: searchParams.get("idCarrera") || "", anioCreacion: new Date().getFullYear().toString(), estado: 1 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const [materias, setMaterias] = useState([]);
   const [pensumsExistentes, setPensumsExistentes] = useState([]);
@@ -47,7 +48,50 @@ export default function PensumForm() {
     });
   }, []);
 
-  const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const validarCampo = (name, value) => {
+    switch (name) {
+      case "idCarrera":
+        if (!value) return "Debe seleccionar una carrera.";
+        return "";
+
+      case "anioCreacion":
+        if (!value) return "El año de creación es obligatorio.";
+
+        if (!/^\d{4}$/.test(value)) {
+          return "El año debe tener 4 dígitos.";
+        }
+
+        const anio = Number(value);
+        const anioActual = new Date().getFullYear();
+
+        if (anio < anioActual) {
+          return `El año no puede ser menor a ${anioActual}.`;
+        }
+
+        if (anio > 2099) {
+          return "El año no puede ser mayor a 2099.";
+        }
+
+        return "";
+
+      default:
+        return "";
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validarCampo(name, value),
+    }));
+  };
 
   const pensumAnterior = (() => {
     if (!form.idCarrera || !form.anioCreacion) return null;
@@ -354,25 +398,35 @@ const guardarTodo = async () => {
 
             <div style={styles.grid2}>
               <div style={styles.field}>
-  <label style={styles.label}>Carrera</label>
-  <select name="idCarrera" value={form.idCarrera} onChange={handleChange} style={styles.input} required>
-    <option value="">Seleccionar carrera</option>
-    {carreras.map((c) => (
-      <option key={c.id} value={c.id}>{c.nombre} ({c.codigo})</option>
-    ))}
-  </select>
-  <button
-    type="button"
-    onClick={() => navigate("/admin/carreras")}
-    style={{ background: "none", border: "none", color: "#1D4ED8", fontSize: "0.78rem", padding: 0, marginTop: 4, cursor: "pointer", textAlign: "left" }}
-  >
-    + ¿No existe la carrera? Créala aquí
-  </button>
-</div>
+              <label style={styles.label}>Carrera</label>
+              <select name="idCarrera" value={form.idCarrera} onChange={handleChange} style={styles.input} required>
+                <option value="">Seleccionar carrera</option>
+                {carreras.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre} ({c.codigo})</option>
+                ))}
+              </select>
+              {errors.idCarrera && (
+                <span style={styles.errorText}>
+                  {errors.idCarrera}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate("/admin/carreras")}
+                style={{ background: "none", border: "none", color: "#1D4ED8", fontSize: "0.78rem", padding: 0, marginTop: 4, cursor: "pointer", textAlign: "left" }}
+              >
+                + ¿No existe la carrera? Créala aquí
+              </button>
+            </div>
 
               <div style={styles.field}>
                 <label style={styles.label}>Año de creación</label>
                 <input name="anioCreacion" type="number" min={new Date().getFullYear()} max="2099" value={form.anioCreacion} onChange={handleChange} style={styles.input} required />
+                {errors.anioCreacion && (
+                  <span style={styles.errorText}>
+                    {errors.anioCreacion}
+                  </span>
+                )}
               </div>
 
               
@@ -791,4 +845,10 @@ const styles = {
   trEx: { borderBottom: "1px solid #f1f5f9" },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", borderBottom: "1px solid #e2e8f0" },
   modalClose: { background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#94a3b8", padding: "0.2rem" },
+  errorText: {
+    color: "#dc2626",
+    fontSize: "0.75rem",
+    marginTop: "4px",
+    fontWeight: 500,
+  },
 };

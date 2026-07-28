@@ -61,16 +61,33 @@ function FieldWrap({ label, required, error, style, children }) {
   );
 }
 
-function Input({ label, value, onChange, type = "text", required, error, style, placeholder }) {
-  return (
-    <FieldWrap label={label} required={required} error={error} style={style}>
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+function Input({
+    label,
+    value,
+    onChange,
+    type = "text",
+    required,
+    error,
+  style,
+    placeholder,
+    maxLength,
+    min,
+  }) {
+    return (
+      <FieldWrap label={label} required={required} error={error} style={style}>
+        <input 
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        min={min}
         style={{
-          background: C.surface, border: `1.5px solid ${error ? C.red : C.border}`, borderRadius: 8,
-          padding: "9px 12px", color: C.text, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box"
-        }} />
-    </FieldWrap>
-  );
+            background: C.surface, border: `1.5px solid ${error ? C.red : C.border}`, borderRadius: 8,
+            padding: "9px 12px", color: C.text, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box"
+          }} />
+      </FieldWrap>
+    );
 }
 
 function Sel({ label, value, onChange, options, placeholder, required, error, style }) {
@@ -196,6 +213,7 @@ function PasoPeriodo({ onNext }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fe, setFe] = useState({});
+  const hoy = new Date().toISOString().split("T")[0];
   useEffect(() => { api.get("/carrera").then(r => setCarreras(r.data.data || [])); }, []);
   const set = k => e => { setFe(p => ({ ...p, [k]: "" })); setForm(p => ({ ...p, [k]: e.target.value })); };
   const handleSubmit = async e => {
@@ -203,7 +221,11 @@ function PasoPeriodo({ onNext }) {
     const errs = {};
     if (!form.codigo.trim()) errs.codigo = "El código del período es obligatorio.";
     else if (form.codigo.trim().length > 20) errs.codigo = "Máximo 20 caracteres.";
-    if (!form.fechaInicio) errs.fechaInicio = "La fecha de inicio es obligatoria.";
+    if (!form.fechaInicio) {
+        errs.fechaInicio = "La fecha de inicio es obligatoria.";
+    } else if (form.fechaInicio < hoy) {
+        errs.fechaInicio = "No se permiten fechas pasadas.";
+    }
     if (!form.fechaFin) errs.fechaFin = "La fecha de fin es obligatoria.";
     if (form.fechaInicio && form.fechaFin && form.fechaFin <= form.fechaInicio) errs.fechaFin = "La fecha de fin debe ser posterior a la de inicio.";
     if (!form.idCarrera) errs.idCarrera = "Selecciona una carrera.";
@@ -220,9 +242,33 @@ function PasoPeriodo({ onNext }) {
       <Alert msg={error} />
       <form onSubmit={handleSubmit} noValidate>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-          <Input label="Código del período" value={form.codigo} onChange={set("codigo")} required error={fe.codigo} style={{ gridColumn: "1 / -1" }} maxLength={20} />
-          <Input label="Fecha inicio" value={form.fechaInicio} onChange={set("fechaInicio")} type="date" required error={fe.fechaInicio} />
-          <Input label="Fecha fin" value={form.fechaFin} onChange={set("fechaFin")} type="date" required error={fe.fechaFin} />
+          <Input
+              label="Código del período"
+              value={form.codigo}
+              onChange={set("codigo")}
+              required
+              error={fe.codigo}
+              style={{ gridColumn: "1 / -1" }}
+              maxLength={20}
+          />
+          <Input
+              label="Fecha inicio"
+              value={form.fechaInicio}
+              onChange={set("fechaInicio")}
+              type="date"
+              min={hoy}
+              required
+              error={fe.fechaInicio}
+          />
+          <Input
+              label="Fecha fin"
+              value={form.fechaFin}
+              onChange={set("fechaFin")}
+              type="date"
+              min={hoy}
+              required
+              error={fe.fechaFin}
+          />
           <Sel label="Carrera" value={form.idCarrera} onChange={set("idCarrera")}
             options={carreras.map(c => ({ value: c.id, label: c.nombre }))} placeholder="Selecciona una carrera" required error={fe.idCarrera} style={{ gridColumn: "1 / -1" }} />
         </div>
@@ -493,7 +539,7 @@ function CursoModal({ open, materia, docentes, cursosDelPeriodo, cursoEditando, 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
             <Input label="Código de grupo" value={form.codigoGrupo}
               onChange={e => { setFe(p => ({ ...p, codigoGrupo: "" })); setForm(p => ({ ...p, codigoGrupo: e.target.value })); }}
-              required error={fe.codigoGrupo} placeholder="Ej: GR-01" />
+              required error={fe.codigoGrupo} placeholder="Ej: GR-01" maxLength={20}/>
             <Input label="Cupo máximo" value={form.cupoMaximo}
               onChange={e => { setFe(p => ({ ...p, cupoMaximo: "" })); setForm(p => ({ ...p, cupoMaximo: e.target.value })); }}
               type="number" required error={fe.cupoMaximo} />
